@@ -1,0 +1,23 @@
+artifact_path: file:///C:/myProjects/AML-Transaction-Monitoring3/mlruns/2/models/m-0efe6fa44d3d42c9848056f5a7ba6a62/artifacts
+flavors:
+  lightgbm:
+    code: null
+    data: model.lgb
+    lgb_version: 4.6.0
+    model_class: lightgbm.basic.Booster
+    serialization_format: cloudpickle
+    skops_trusted_types: null
+  python_function:
+    data: model.lgb
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.lightgbm
+    python_version: 3.11.1
+mlflow_version: 3.9.0
+model_id: m-0efe6fa44d3d42c9848056f5a7ba6a62
+model_size_bytes: 1570088
+model_uuid: m-0efe6fa44d3d42c9848056f5a7ba6a62
+prompts: null
+run_id: 8688175be5124d3f8eacd6eb0f7ef6f2
+utc_time_created: '2026-01-31 13:07:54.269726'

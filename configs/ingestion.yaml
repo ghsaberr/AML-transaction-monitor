@@ -1,0 +1,9 @@
+dataset:
+  name: ibm_aml_hi_small
+  train_start: "2022-09-01"
+  train_end: "2022-09-09"
+  test_date: "2022-09-10"
+
+paths:
+  raw_dir: "data/raw/ibm_aml/HI-Small"
+  output_file: "data/processed/transactions_canonical.parquet"
