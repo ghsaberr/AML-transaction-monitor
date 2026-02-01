@@ -17,30 +17,31 @@ Build and start the service:
 docker build -t aml-api:local .
 docker run -p 8080:8080 aml-api:local
 
-Health check:
+### Health check:
 
 curl http://127.0.0.1:8080/health
 
-Score request:
+### Score request:
 
 curl -X POST http://127.0.0.1:8080/score \
   -H "Content-Type: application/json" \
   --data-binary "@req_score.json"
 
-Explain request:
+### Explain request:
 
 curl -X POST http://127.0.0.1:8080/explain \
   -H "Content-Type: application/json" \
   --data-binary "@req_explain.json"
+
 ---
 
 ## How to Run (AWS Lambda + API Gateway)
 
-Health check:
+### Health check:
 
 curl https://<api-id>.execute-api.<region>.amazonaws.com/health
 
-Score request:
+### Score request:
 
 curl -X POST https://<api-id>.execute-api.<region>.amazonaws.com/score \
   -H "Content-Type: application/json" \
