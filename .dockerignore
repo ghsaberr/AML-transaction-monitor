@@ -1,0 +1,8 @@
+.git
+.venv
+__pycache__
+models/llm
+data/processed
+data/raw
+.env
+.DS_Store
