@@ -10,3 +10,10 @@ langchain-community
 langchain-huggingface
 sentence-transformers
 faiss-cpu
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Dev
+python-dotenv
