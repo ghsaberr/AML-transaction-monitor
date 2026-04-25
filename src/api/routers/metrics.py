@@ -18,7 +18,7 @@ def get_metrics():
     """
     Get system metrics.
     
-    NOTE: This is a stub for Phase 4 (Monitoring & Observability).
+    NOTE: This is a stub for the next phase(Monitoring & Observability).
     Currently returns placeholder values.
     
     Returns:
