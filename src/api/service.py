@@ -36,6 +36,8 @@ class ScoringService:
         """
         Score a transaction and create a persistent case record.
         
+        Uses strict feature contract validation from ModelRunner.
+        
         Args:
             tx_features: Transaction features dictionary
         
@@ -46,32 +48,28 @@ class ScoringService:
             ValueError: If feature validation fails
             Exception: If database operation fails
         """
-        # Validate features exist and match expected keys
-        expected_features = set(self.model_runner.features)
-        provided_features = set(tx_features.keys())
-        
-        missing_features = expected_features - provided_features
-        if missing_features:
-            raise ValueError(f"Missing required features: {missing_features}")
-        
-        # Run model
+        # Run model with feature contract validation
+        # ModelRunner.run() validates features and returns versions
         try:
-            score = float(self.model_runner.model.predict(
-                np.array([[tx_features[f] for f in self.model_runner.features]])
-            )[0])
+            model_result = self.model_runner.run(tx_features)
+        except ValueError as e:
+            logger.error(f"Feature validation failed: {e}")
+            raise
         except Exception as e:
             logger.error(f"Model prediction failed: {e}")
             raise
         
-        # Get threshold and determine decision
-        threshold = float(self.model_runner.threshold)
-        review_flag = score >= threshold
-        decision = "ALERT" if review_flag else "PASS"
+        # Extract results
+        score = model_result["score"]
+        decision = model_result["decision"]
+        model_version = model_result["model_version"]
+        threshold_version = model_result["threshold_version"]
+        feature_contract_version = model_result["feature_contract_version"]
+        schema_hash = model_result["schema_hash"]
         
-        # Get metadata from model
-        model_version = self._get_model_version()
-        threshold_version = self._get_threshold_version()
-        feature_contract_version = self._get_feature_contract_version()
+        # Determine review flag from decision
+        review_flag = decision == "ALERT"
+        threshold = float(self.model_runner.threshold)
         
         # Create identifiers
         case_id = str(uuid4())
@@ -103,24 +101,10 @@ class ScoringService:
             "model_version": model_version,
             "threshold_version": threshold_version,
             "feature_contract_version": feature_contract_version,
+            "schema_hash": schema_hash,
             "review_status": "queued_for_review",
             "timestamp": datetime.utcnow(),
         }
-    
-    def _get_model_version(self) -> str:
-        """Get model version from metadata."""
-        # TODO: Load from model metadata file
-        return "1.0.0"
-    
-    def _get_threshold_version(self) -> str:
-        """Get threshold version from metadata."""
-        # TODO: Load from threshold metadata file
-        return "1.0.0"
-    
-    def _get_feature_contract_version(self) -> str:
-        """Get feature contract version from metadata."""
-        # TODO: Load from feature contract file
-        return "1.0.0"
 
 
 class ReviewService:

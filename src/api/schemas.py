@@ -422,3 +422,101 @@ class ReviewStatistics(BaseModel):
         description="Queue health status: ok, warning, or critical"
     )
     timestamp: str = Field(..., description="When stats were calculated")
+
+
+# ============================================================================
+# FEATURE CONTRACT & ARTIFACT METADATA
+# ============================================================================
+
+class FeatureDefinitionSchema(BaseModel):
+    """Feature definition within contract."""
+    
+    name: str = Field(..., description="Feature name")
+    dtype: str = Field(..., description="Data type: float, int, bool, string")
+    position: int = Field(..., description="Position in feature vector")
+    null_behavior: str = Field(..., description="null|default|zero|mean")
+    default_value: Optional[Any] = Field(None, description="Default if null_behavior=default")
+    description: str = Field(..., description="Feature description")
+
+
+class FeatureContractSchema(BaseModel):
+    """Complete feature contract specification."""
+    
+    version: str = Field(..., description="Contract version (semver)")
+    description: str = Field(..., description="Contract description")
+    schema_hash: str = Field(..., description="SHA256 hash of contract (first 16 chars)")
+    created_at: str = Field(..., description="When contract was created (ISO format)")
+    feature_count: int = Field(..., description="Number of features")
+    features: List[FeatureDefinitionSchema] = Field(..., description="Feature specifications")
+    training_metadata: Dict[str, Any] = Field(
+        ...,
+        description="Training set statistics (means, mins, maxes)"
+    )
+
+
+class ThresholdMetadataSchema(BaseModel):
+    """Threshold and decision boundary metadata."""
+    
+    version: str = Field(..., description="Threshold version")
+    value: float = Field(..., description="Decision threshold (0-1)")
+    rationale: str = Field(..., description="Why this threshold was chosen")
+    validation_auc: float = Field(..., description="AUC on validation set")
+    validation_precision: float = Field(..., description="Precision at this threshold")
+    validation_recall: float = Field(..., description="Recall at this threshold")
+    validation_f1: float = Field(..., description="F1 score at this threshold")
+
+
+class TrainingMetadataSchema(BaseModel):
+    """Model training metadata."""
+    
+    window_start: str = Field(..., description="Training data start date")
+    window_end: str = Field(..., description="Training data end date")
+    dataset: str = Field(..., description="Dataset identifier")
+    samples: int = Field(..., description="Number of training samples")
+    positive_samples: int = Field(..., description="Number of positive samples")
+    class_balance: float = Field(..., description="Ratio of positive samples")
+    preprocessing: str = Field(..., description="Preprocessing steps applied")
+    feature_engineering_version: str = Field(..., description="Version of feature engineering code")
+
+
+class ModelPerformanceSchema(BaseModel):
+    """Model performance metrics."""
+    
+    training_auc: float = Field(..., description="AUC on training set")
+    validation_auc: float = Field(..., description="AUC on validation set")
+    test_auc: float = Field(..., description="AUC on test set")
+    feature_importance_count: int = Field(..., description="Number of features with importance")
+    top_features: List[str] = Field(..., description="Top 5 important features")
+
+
+class MLFlowMetadataSchema(BaseModel):
+    """MLflow experiment and run tracking."""
+    
+    experiment_id: str = Field(..., description="MLflow experiment ID")
+    experiment_name: str = Field(..., description="MLflow experiment name")
+    run_id: str = Field(..., description="MLflow run ID")
+    artifact_uri: str = Field(..., description="MLflow artifact storage URI")
+
+
+class ArtifactMetadataResponse(BaseModel):
+    """Complete artifact metadata for model lineage and governance."""
+    
+    model: Dict[str, Any] = Field(..., description="Model identity and version")
+    training: TrainingMetadataSchema = Field(..., description="Training metadata")
+    feature_contract: Dict[str, Any] = Field(..., description="Feature contract reference")
+    threshold: ThresholdMetadataSchema = Field(..., description="Decision threshold")
+    performance: ModelPerformanceSchema = Field(..., description="Model performance")
+    mlflow: MLFlowMetadataSchema = Field(..., description="MLflow tracking")
+
+
+class HealthResponseWithMetadata(BaseModel):
+    """Enhanced health response with metadata."""
+    
+    version: str = Field(..., description="API version")
+    status: str = Field(..., description="API status: healthy, degraded, error")
+    model_version: str = Field(..., description="Model version")
+    feature_contract_version: str = Field(..., description="Feature contract version")
+    threshold_version: str = Field(..., description="Threshold version")
+    schema_hash: str = Field(..., description="Feature contract schema hash")
+    database: str = Field(..., description="Database status")
+    timestamp: datetime = Field(..., description="Timestamp")

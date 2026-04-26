@@ -1,0 +1,311 @@
+{
+  "version": "1.0.0",
+  "description": "Feature contract for AML LightGBM model v1",
+  "schema_hash": "20401fb2ad1d0f0f",
+  "created_at": "2026-04-15T10:30:00Z",
+  "feature_count": 35,
+  "training_metadata": {
+    "means": {
+      "amount": 2547.23,
+      "log_amount": 7.82,
+      "hour_of_day": 11.5,
+      "day_of_week": 3.0,
+      "time_since_prev_tx": 86400.0,
+      "amount_delta_prev_tx": 125.45,
+      "tx_count_1h": 0.23,
+      "tx_amount_mean_1h": 1823.12,
+      "tx_count_24h": 1.45,
+      "tx_amount_mean_24h": 2156.78,
+      "tx_count_7d": 5.23,
+      "tx_amount_mean_7d": 2301.45,
+      "out_degree": 8.12,
+      "in_degree": 12.34,
+      "total_degree": 20.46,
+      "pagerank": 0.0015,
+      "ego_tx_count": 45.23,
+      "ego_amount_sum": 98765.12,
+      "ego_amount_mean": 2187.43,
+      "n2v_0": -0.012,
+      "n2v_1": 0.034,
+      "n2v_2": -0.008,
+      "n2v_3": 0.045,
+      "n2v_4": -0.021,
+      "n2v_5": 0.018,
+      "n2v_6": -0.009,
+      "n2v_7": 0.052,
+      "n2v_8": -0.015,
+      "n2v_9": 0.031,
+      "n2v_10": -0.007,
+      "n2v_11": 0.044,
+      "n2v_12": -0.019,
+      "n2v_13": 0.029,
+      "n2v_14": -0.006,
+      "n2v_15": 0.038
+    },
+    "mins": {
+      "amount": 0.01,
+      "tx_count_1h": 0.0,
+      "tx_count_24h": 0.0,
+      "tx_count_7d": 0.0,
+      "out_degree": 0.0,
+      "in_degree": 0.0,
+      "pagerank": 0.0001
+    },
+    "maxes": {
+      "amount": 999999.99,
+      "tx_count_1h": 50.0,
+      "tx_count_24h": 200.0,
+      "tx_count_7d": 1000.0,
+      "out_degree": 500.0,
+      "in_degree": 5000.0,
+      "pagerank": 1.0
+    }
+  },
+  "features": [
+    {
+      "name": "amount",
+      "dtype": "float",
+      "position": 0,
+      "null_behavior": "disallow",
+      "description": "Transaction amount in USD"
+    },
+    {
+      "name": "log_amount",
+      "dtype": "float",
+      "position": 1,
+      "null_behavior": "disallow",
+      "description": "Log-transformed transaction amount"
+    },
+    {
+      "name": "hour_of_day",
+      "dtype": "int",
+      "position": 2,
+      "null_behavior": "disallow",
+      "description": "Hour of day (0-23)"
+    },
+    {
+      "name": "day_of_week",
+      "dtype": "int",
+      "position": 3,
+      "null_behavior": "disallow",
+      "description": "Day of week (0=Monday, 6=Sunday)"
+    },
+    {
+      "name": "time_since_prev_tx",
+      "dtype": "float",
+      "position": 4,
+      "null_behavior": "mean",
+      "description": "Seconds since previous transaction for account"
+    },
+    {
+      "name": "amount_delta_prev_tx",
+      "dtype": "float",
+      "position": 5,
+      "null_behavior": "mean",
+      "description": "Absolute difference from previous transaction amount"
+    },
+    {
+      "name": "tx_count_1h",
+      "dtype": "int",
+      "position": 6,
+      "null_behavior": "zero",
+      "description": "Transaction count in last 1 hour"
+    },
+    {
+      "name": "tx_amount_mean_1h",
+      "dtype": "float",
+      "position": 7,
+      "null_behavior": "zero",
+      "description": "Mean transaction amount in last 1 hour"
+    },
+    {
+      "name": "tx_count_24h",
+      "dtype": "int",
+      "position": 8,
+      "null_behavior": "zero",
+      "description": "Transaction count in last 24 hours"
+    },
+    {
+      "name": "tx_amount_mean_24h",
+      "dtype": "float",
+      "position": 9,
+      "null_behavior": "zero",
+      "description": "Mean transaction amount in last 24 hours"
+    },
+    {
+      "name": "tx_count_7d",
+      "dtype": "int",
+      "position": 10,
+      "null_behavior": "zero",
+      "description": "Transaction count in last 7 days"
+    },
+    {
+      "name": "tx_amount_mean_7d",
+      "dtype": "float",
+      "position": 11,
+      "null_behavior": "zero",
+      "description": "Mean transaction amount in last 7 days"
+    },
+    {
+      "name": "out_degree",
+      "dtype": "float",
+      "position": 12,
+      "null_behavior": "zero",
+      "description": "Number of outgoing transactions in transaction network"
+    },
+    {
+      "name": "in_degree",
+      "dtype": "float",
+      "position": 13,
+      "null_behavior": "zero",
+      "description": "Number of incoming transactions in transaction network"
+    },
+    {
+      "name": "total_degree",
+      "dtype": "float",
+      "position": 14,
+      "null_behavior": "zero",
+      "description": "Total degree (in + out) in transaction network"
+    },
+    {
+      "name": "pagerank",
+      "dtype": "float",
+      "position": 15,
+      "null_behavior": "zero",
+      "description": "PageRank centrality in transaction network"
+    },
+    {
+      "name": "ego_tx_count",
+      "dtype": "int",
+      "position": 16,
+      "null_behavior": "zero",
+      "description": "Transaction count in ego network (account + neighbors)"
+    },
+    {
+      "name": "ego_amount_sum",
+      "dtype": "float",
+      "position": 17,
+      "null_behavior": "zero",
+      "description": "Sum of amounts in ego network"
+    },
+    {
+      "name": "ego_amount_mean",
+      "dtype": "float",
+      "position": 18,
+      "null_behavior": "zero",
+      "description": "Mean amount in ego network"
+    },
+    {
+      "name": "n2v_0",
+      "dtype": "float",
+      "position": 19,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 0"
+    },
+    {
+      "name": "n2v_1",
+      "dtype": "float",
+      "position": 20,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 1"
+    },
+    {
+      "name": "n2v_2",
+      "dtype": "float",
+      "position": 21,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 2"
+    },
+    {
+      "name": "n2v_3",
+      "dtype": "float",
+      "position": 22,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 3"
+    },
+    {
+      "name": "n2v_4",
+      "dtype": "float",
+      "position": 23,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 4"
+    },
+    {
+      "name": "n2v_5",
+      "dtype": "float",
+      "position": 24,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 5"
+    },
+    {
+      "name": "n2v_6",
+      "dtype": "float",
+      "position": 25,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 6"
+    },
+    {
+      "name": "n2v_7",
+      "dtype": "float",
+      "position": 26,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 7"
+    },
+    {
+      "name": "n2v_8",
+      "dtype": "float",
+      "position": 27,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 8"
+    },
+    {
+      "name": "n2v_9",
+      "dtype": "float",
+      "position": 28,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 9"
+    },
+    {
+      "name": "n2v_10",
+      "dtype": "float",
+      "position": 29,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 10"
+    },
+    {
+      "name": "n2v_11",
+      "dtype": "float",
+      "position": 30,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 11"
+    },
+    {
+      "name": "n2v_12",
+      "dtype": "float",
+      "position": 31,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 12"
+    },
+    {
+      "name": "n2v_13",
+      "dtype": "float",
+      "position": 32,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 13"
+    },
+    {
+      "name": "n2v_14",
+      "dtype": "float",
+      "position": 33,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 14"
+    },
+    {
+      "name": "n2v_15",
+      "dtype": "float",
+      "position": 34,
+      "null_behavior": "zero",
+      "description": "Node2Vec embedding dimension 15"
+    }
+  ]
+}
