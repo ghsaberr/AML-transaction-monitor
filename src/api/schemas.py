@@ -362,3 +362,63 @@ class ErrorDetail(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
+
+
+# ============================================================================
+# CASE MANAGEMENT CONTRACTS
+# ============================================================================
+
+class CaseRecord(BaseModel):
+    """Single case record."""
+    
+    case_id: str
+    request_id: str
+    model_version: str
+    threshold_version: str
+    score: float
+    review_status: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
+class CaseListResponse(BaseModel):
+    """List of cases with filtering."""
+    
+    total_cases: int
+    cases: List[Dict[str, Any]]
+    timestamp: str  # ISO format string
+
+
+class CaseDetailsResponse(BaseModel):
+    """Complete case details including audit trail."""
+    
+    case: Dict[str, Any]
+    audit_events: List[Dict[str, Any]]
+    timestamp: str
+
+
+# ============================================================================
+# REVIEW STATISTICS CONTRACTS
+# ============================================================================
+
+class ReviewStatistics(BaseModel):
+    """Review workflow statistics."""
+    
+    total_cases: int = Field(..., description="Total number of cases")
+    queued_for_review: int = Field(..., description="Cases awaiting review")
+    approved: int = Field(..., description="Approved cases")
+    rejected: int = Field(..., description="Rejected cases")
+    escalated: int = Field(..., description="Escalated cases")
+    review_rate: float = Field(..., description="Percentage of cases reviewed")
+    approval_rate: float = Field(..., description="Percentage of reviewed cases approved")
+    escalation_rate: float = Field(..., description="Percentage of cases escalated")
+    queue_health: str = Field(
+        ...,
+        description="Queue health status: ok, warning, or critical"
+    )
+    timestamp: str = Field(..., description="When stats were calculated")

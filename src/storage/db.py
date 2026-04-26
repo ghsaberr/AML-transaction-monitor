@@ -458,6 +458,8 @@ class WorkflowDB:
                     "reviewer_id": reviewer_id,
                     "decision": decision,
                     "note": note,
+                    "previous_status": previous_status,
+                    "new_status": new_status,
                     "timestamp": datetime.utcnow().isoformat()
                 }
         

@@ -11,7 +11,6 @@ import numpy as np
 import json
 import logging
 
-from src.agent.model_runner import ModelRunner
 from src.storage import get_db, DatabaseError
 
 logger = logging.getLogger(__name__)
@@ -20,12 +19,12 @@ logger = logging.getLogger(__name__)
 class ScoringService:
     """Orchestrates scoring, case creation, and decision logic."""
     
-    def __init__(self, model_runner: ModelRunner):
+    def __init__(self, model_runner=None):
         """
         Initialize scoring service.
         
         Args:
-            model_runner: Initialized ModelRunner instance
+            model_runner: Initialized ModelRunner instance (lazy if not provided)
         """
         self.model_runner = model_runner
         self.db = get_db()
@@ -190,7 +189,7 @@ class ReviewService:
 class ExplanationService:
     """Orchestrates explanation generation with fallbacks."""
     
-    def __init__(self, model_runner: ModelRunner):
+    def __init__(self, model_runner=None):
         """Initialize explanation service."""
         self.model_runner = model_runner
     
@@ -278,7 +277,7 @@ class ExplanationService:
 class HealthService:
     """Health check and system status."""
     
-    def __init__(self, model_runner: ModelRunner):
+    def __init__(self, model_runner=None):
         """Initialize health service."""
         self.model_runner = model_runner
         self.db = get_db()
