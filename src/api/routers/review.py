@@ -1,7 +1,7 @@
 # src/api/routers/review.py
 """Review workflow endpoint."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from src.api.schemas import ReviewRequest, ReviewResponse
 from src.api.service import ReviewService
 import logging
@@ -11,27 +11,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["review"])
 
 
-def get_review_service() -> ReviewService:
-    """Dependency injection for review service."""
-    return ReviewService()
-
-
 @router.post(
     "/review",
     response_model=ReviewResponse,
     summary="Submit Review",
     description="Submit a manual review decision for a case"
 )
-def submit_review(
-    req: ReviewRequest,
-    service: ReviewService = Depends(get_review_service),
-):
+def submit_review(req: ReviewRequest):
     """
     Submit a manual review decision.
     
     Args:
         req: ReviewRequest with case_id, reviewer_id, decision, note
-        service: ReviewService instance (injected)
     
     Returns:
         ReviewResponse with review details and status transitions
@@ -41,6 +32,7 @@ def submit_review(
         HTTPException 500: If database operation fails
     """
     try:
+        service = ReviewService()
         result = service.submit_review(
             case_id=req.case_id,
             reviewer_id=req.reviewer_id,

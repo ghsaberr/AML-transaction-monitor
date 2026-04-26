@@ -1,7 +1,7 @@
 # src/api/routers/audit.py
 """Audit trail endpoint."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from src.api.schemas import AuditTrailResponse, AuditEvent
 from src.api.service import ReviewService
 from datetime import datetime
@@ -12,27 +12,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["audit"])
 
 
-def get_review_service() -> ReviewService:
-    """Dependency injection for review service."""
-    return ReviewService()
-
-
 @router.get(
     "/audit/{case_id}",
     response_model=AuditTrailResponse,
     summary="Get Audit Trail",
     description="Retrieve complete audit trail for a case"
 )
-def get_audit_trail(
-    case_id: str,
-    service: ReviewService = Depends(get_review_service),
-):
+def get_audit_trail(case_id: str):
     """
     Get audit trail for a case.
     
     Args:
         case_id: Case identifier
-        service: ReviewService instance (injected)
     
     Returns:
         AuditTrailResponse with all events in chronological order
@@ -42,6 +33,7 @@ def get_audit_trail(
         HTTPException 500: If retrieval fails
     """
     try:
+        service = ReviewService()
         events = service.get_case_audit_trail(case_id)
         
         # Convert to schema

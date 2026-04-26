@@ -7,6 +7,7 @@ Replaces the old app.py with proper dependency injection and error handling.
 import os
 from pathlib import Path
 from typing import Optional
+from datetime import datetime
 import logging
 
 from fastapi import FastAPI, Request, HTTPException
@@ -124,12 +125,6 @@ app.include_router(routers.explain.router)
 app.include_router(routers.review.router)
 app.include_router(routers.audit.router)
 app.include_router(routers.metrics.router)
-
-# Override dependency for health router to use our injected model_runner
-# This connects the model_runner singleton to FastAPI's dependency system
-from src.api.routers import health, score, explain
-health.model_runner_dep = get_model_runner
-score.model_runner_dep = get_model_runner
 
 
 # ============================================================================

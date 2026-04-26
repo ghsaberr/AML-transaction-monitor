@@ -1,17 +1,11 @@
 # src/api/routers/health.py
 """Health check endpoint."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, HTTPException
 from src.api.schemas import HealthResponse
 from src.api.service import HealthService
-from src.agent.model_runner import ModelRunner
 
 router = APIRouter(tags=["health"])
-
-
-def get_health_service(model_runner: ModelRunner) -> HealthService:
-    """Dependency injection for health service."""
-    return HealthService(model_runner)
 
 
 @router.get(
@@ -20,11 +14,19 @@ def get_health_service(model_runner: ModelRunner) -> HealthService:
     summary="Health Check",
     description="Get service health status and version information"
 )
-def health(service: HealthService = Depends(get_health_service)):
+def health():
     """
     Health check endpoint with comprehensive status.
     
     Returns:
         HealthResponse with status, versions, and component health
     """
-    return service.get_health_status()
+    # Import here to avoid circular imports
+    from src.api.main import get_model_runner
+    
+    try:
+        model_runner = get_model_runner()
+        service = HealthService(model_runner)
+        return service.get_health_status()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e))

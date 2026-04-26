@@ -1,11 +1,10 @@
 # src/api/routers/explain.py
 """Explanation endpoint with dual-mode (agent + fallback)."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from typing import Optional
 from src.api.schemas import ExplainRequest, ExplainResponse
 from src.api.service import ExplanationService
-from src.agent.model_runner import ModelRunner
 from src.agent.aml_agent import AMLAgent, AgentConfig
 from src.agent.diagnostics import DiagnosticTools
 import os
@@ -25,12 +24,12 @@ ENABLE_RETRIEVAL = os.getenv("ENABLE_RETRIEVAL", "false").lower() == "true"
 _agent: Optional[AMLAgent] = None
 
 
-def get_explanation_service(model_runner: ModelRunner) -> ExplanationService:
+def get_explanation_service(model_runner) -> ExplanationService:
     """Dependency injection for explanation service."""
     return ExplanationService(model_runner)
 
 
-def _get_agent(model_runner: ModelRunner) -> Optional[AMLAgent]:
+def _get_agent(model_runner) -> Optional[AMLAgent]:
     """Get or initialize agent if retrieval enabled."""
     global _agent
     
@@ -60,11 +59,7 @@ def _get_agent(model_runner: ModelRunner) -> Optional[AMLAgent]:
     summary="Explain Score",
     description="Generate explanation for a transaction score (agent-based or feature importance)"
 )
-def explain(
-    req: ExplainRequest,
-    service: ExplanationService = Depends(get_explanation_service),
-    model_runner: ModelRunner = None,
-):
+def explain(req: ExplainRequest):
     """
     Explain a transaction score.
     
@@ -74,8 +69,6 @@ def explain(
     
     Args:
         req: ExplainRequest with case_id and tx_features
-        service: ExplanationService instance (injected)
-        model_runner: ModelRunner instance (injected)
     
     Returns:
         ExplainResponse with either agent_response or top_features
@@ -85,6 +78,12 @@ def explain(
         HTTPException 500: If explanation generation fails
     """
     try:
+        # Import here to avoid circular imports
+        from src.api.main import get_model_runner
+        
+        model_runner = get_model_runner()
+        service = ExplanationService(model_runner)
+        
         agent = None
         agent_response = None
         
