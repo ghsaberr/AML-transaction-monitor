@@ -128,18 +128,18 @@ Production Transactions
 
 Complete documentation is organized in the `/docs` folder:
 
-### 📋 Getting Started
+### Getting Started
 - **[Business Case](docs/business_case.md)**: ROI analysis, cost savings, strategic benefits
 - **[Architecture Overview](docs/architecture.md)**: System design, layered architecture, data flow
 
-### 🔧 For Developers
+### For Developers
 - **[API Contract Reference](docs/api_contract.md)**: All HTTP endpoints, request/response schemas, examples
 - **[Model Card](docs/model_card.md)**: Model performance, limitations, bias considerations, monitoring
 
-### 👥 For Compliance Officers
+### For Compliance Officers
 - **[Reviewer Workflow](docs/reviewer_workflow.md)**: How to use the review queue, decision guidelines, examples
 
-### 🚀 For Operations
+### For Operations
 - **[Operations Guide](docs/operations.md)**: Deployment, monitoring, troubleshooting, scaling, retraining
 
 ---
@@ -184,7 +184,7 @@ Complete documentation is organized in the `/docs` folder:
 
 ## Running Tests
 
-### Unit & Integration Tests (87 total)
+### Unit & Integration Tests (97 total)
 ```bash
 # Run all tests
 uv run python -m pytest tests/ --ignore=tests/test_api_health_old.py -v
@@ -206,7 +206,7 @@ uv run python -m pytest tests/ --cov=src --cov-report=html
 
 ### Test Results
 ```
-87 passed, 23 warnings in 2.46s ✅
+97 passed, 24 warnings in 38.33s 
 ```
 
 ---
@@ -298,7 +298,7 @@ Located at `models/lgbm_final/artifact_metadata.json`:
 - ✅ API contracts (Pydantic validation)
 - ✅ Immutable audit trails (append-only)
 - ✅ Monitoring & alerting (drift, performance, latency)
-- ✅ Test coverage (87+ tests, 100% pass rate)
+- ✅ Test coverage (97 tests, 100% pass rate)
 - ✅ Database scalability (SQLite + migration path to PostgreSQL)
 - ✅ Docker containerization (production image)
 - ✅ Deployment documentation (AWS ECS, local, compose)
@@ -310,7 +310,7 @@ Located at `models/lgbm_final/artifact_metadata.json`:
 
 ## Project Status
 
-### Sprint 1-4 Complete ✅
+### Sprint 1-4 Complete
 - Storage layer (SQLite, 3 tables, immutable audit)
 - API routers (6 endpoints, Pydantic validation)
 - Feature contracts (35-feature schema, versioning)
@@ -318,7 +318,7 @@ Located at `models/lgbm_final/artifact_metadata.json`:
 - Service layer (decoupled business logic)
 - 87+ tests (100% passing, zero regressions)
 
-### Sprint 5 Complete ✅
+### Sprint 5 Complete
 - End-to-end integration tests (20+ workflows)
 - Production documentation (6 markdown files)
 - Executive summary (this README)
@@ -351,50 +351,3 @@ Internal - Confidential
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, testing requirements, and code standards.
-
----
-
-**Last Updated**: 2026-04-27  
-**Version**: 1.0.0  
-**Status**: Production Ready ✅
-- **API Gateway** – public HTTP interface  
-- **IAM (least privilege)** – secure execution role  
-- **CloudWatch Logs** – monitoring and debugging  
-
-Environment-driven configuration allows multiple deployment modes (with or without explainability).
-
----
-
-## Testing
-- Local testing with Docker
-- Cloud testing via `curl`
-- Realistic transaction payloads used for validation
-- Health and inference endpoints verified end-to-end
-
----
-
-## Monitoring & Observability
-This deployment currently uses **AWS Lambda’s built-in CloudWatch logging** for observability.
-
-While no explicit monitoring or alerting rules are configured yet, this stage validates:
-- Correct model loading
-- Stable API behavior under cold and warm starts
-- End-to-end inference execution in a cloud environment
-
-Monitoring and alerting are intentionally left as a **future operational concern**, as the primary goal of this project phase is to demonstrate:
-- ML system design
-- Cloud-native deployment
-- Explainability-aware architecture
-
----
-
-## Design Philosophy
-- **Reproducibility first**
-- **No temporal leakage**
-- **Explainability as a controlled feature, not a liability**
-- **Cloud-native, not cloud-dependent**
-
----
-
-## Author
-This project was built as a **portfolio-grade, production-oriented AML system**
