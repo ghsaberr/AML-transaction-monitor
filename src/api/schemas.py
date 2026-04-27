@@ -6,7 +6,7 @@ These enforce strict request/response validation across all endpoints.
 
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator
 import json
 
 
@@ -231,6 +231,17 @@ class AuditEvent(BaseModel):
     actor: Optional[str]
     details: Optional[Dict[str, Any]]
     timestamp: datetime
+    
+    @field_validator('details', mode='before')
+    @classmethod
+    def parse_details_json(cls, v):
+        """Parse JSON string details from SQLite into dict."""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, ValueError):
+                return None
+        return v
     
     class Config:
         json_encoders = {

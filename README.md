@@ -52,16 +52,25 @@ curl -X POST http://localhost:8000/score \
   -H "Content-Type: application/json" \
   -d '{
     "tx_features": {
-      "transaction_amount": 5000.0,
-      "transaction_count_24h": 15,
-      "unique_destinations_24h": 3,
-      "avg_transaction_amount_7d": 2500.0,
-      "days_since_account_creation": 365,
-      "is_flagged_as_high_risk": false,
-      "account_age_category": 2,
-      "transaction_velocity": 0.1,
-      "geographic_risk_score": 0.3,
-      "transaction_type_risk": 0.2
+      "amount": 5000.0,
+      "log_amount": 8.51,
+      "hour_of_day": 14,
+      "day_of_week": 2,
+      "time_since_prev_tx": 3600.0,
+      "amount_delta_prev_tx": 2500.0,
+      "tx_count_1h": 2,
+      "tx_amount_mean_1h": 2500.0,
+      "tx_count_24h": 15,
+      "tx_amount_mean_24h": 1000.0,
+      "tx_count_7d": 45,
+      "tx_amount_mean_7d": 850.0,
+      "out_degree": 5,
+      "in_degree": 12,
+      "total_degree": 17,
+      "pagerank": 0.0025,
+      "ego_tx_count": 85,
+      "ego_amount_sum": 150000.0,
+      "ego_amount_mean": 1764.7
     }
   }'
 ```

@@ -9,14 +9,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["audit", "cases"])
+router = APIRouter()
 
 
 @router.get(
     "/audit/{case_id}",
     response_model=AuditTrailResponse,
     summary="Get Audit Trail",
-    description="Retrieve complete audit trail for a case"
+    description="Retrieve complete audit trail for a case",
+    tags=["audit"]
 )
 def get_audit_trail(case_id: str):
     """
@@ -68,7 +69,8 @@ def get_audit_trail(case_id: str):
 @router.get(
     "/cases",
     summary="List Cases",
-    description="Get list of cases, optionally filtered by status"
+    description="Get list of cases, optionally filtered by status",
+    tags=["cases"]
 )
 def list_cases(status: str = None, limit: int = 100):
     """
@@ -123,7 +125,8 @@ def list_cases(status: str = None, limit: int = 100):
 @router.get(
     "/cases/{case_id}",
     summary="Get Case Details",
-    description="Get complete details for a single case"
+    description="Get complete details for a single case",
+    tags=["cases"]
 )
 def get_case_details(case_id: str):
     """
@@ -168,7 +171,8 @@ def get_case_details(case_id: str):
 @router.get(
     "/review-stats",
     summary="Review Workflow Statistics",
-    description="Get statistics on review workflow (queue sizes, decision counts)"
+    description="Get statistics on review workflow (queue sizes, decision counts)",
+    tags=["cases"]
 )
 def get_review_stats():
     """
