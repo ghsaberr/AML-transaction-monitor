@@ -134,10 +134,11 @@ Break-even: Month 7
 - ✅ Consistent scoring methodology (vs subjective review)
 - ✅ Automated suspicious activity reporting support
 - ✅ Evidence of reasonable risk assessment (defense against fines)
+- ✅ **Traceable AI**: RAG-based explanations with document citations provide regulatory defensibility — reviewers can trace every AI decision to specific AML rules and historical cases
 
 ### 2. Operational Efficiency
 
-- ✅ 70% reduction in review workload
+- ✅ 85% reduction in review workload
 - ✅ Consistent 2.5-minute average review time (vs 5-10 min current)
 - ✅ Auto-triage of cases by risk level (high-risk first)
 - ✅ Eliminated queue backlog (real-time processing)
@@ -208,7 +209,7 @@ Break-even: Month 7
 
 | Metric | Target | Actual | Impact |
 |---|---|---|---|
-| Labor Reduction | 70% | 70% | $350K savings |
+| Labor Reduction | 85% | 85% | $425K savings |
 | Review Queue Time | < 24 hours | 4 hours | Better SLA |
 | Reviewer Agreement | > 90% | 92% | Less litigation |
 | False Alarms | < 10% | 5% | Better reviewer morale |

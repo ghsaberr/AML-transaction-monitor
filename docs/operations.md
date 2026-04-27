@@ -11,16 +11,24 @@ This guide provides operations teams with instructions for deploying, monitoring
 ### Development Environment
 - **OS**: Windows, macOS, Linux
 - **Python**: 3.11+
-- **Memory**: 4GB minimum, 8GB recommended
+- **Memory**: 4GB minimum, 8GB recommended (12GB+ if using Phi-3 LLM)
 - **Storage**: 50GB (models + data)
 - **Network**: Internet access for dependency installation
 
 ### Production Environment
 - **OS**: Linux (Ubuntu 20.04+ or compatible)
 - **CPU**: 2+ cores (1 core minimum, performance degrades)
-- **Memory**: 2GB minimum, 4GB recommended
+- **Memory**: 2GB minimum, 4GB recommended (8GB+ if using Phi-3 LLM)
 - **Storage**: SSD 100GB (database growth + model versions)
 - **Network**: Internal network (no internet required after bootstrap)
+
+### LLM Memory Requirements (Optional)
+When enabling the Phi-3 Mini LLM for agentic explainability:
+- **Minimum**: 4GB additional RAM (total 8GB)
+- **Recommended**: 8GB additional RAM (total 12GB)
+- **Model Size**: ~2.4GB (Phi-3-mini-4k-instruct-q4.gguf, 4-bit quantized)
+- **FAISS Index**: ~100MB (all-MiniLM-L6-v2 embeddings)
+- **Runtime**: ~3GB additional during inference
 
 ### Docker Deployment
 - **Image**: Python 3.11 slim + dependencies
@@ -74,6 +82,29 @@ python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 ```
 
 **Verify**: http://localhost:8000/health should return status "healthy"
+
+#### 6. Environment Variables (Optional)
+
+For agentic explainability with RAG and local LLM:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLM_MODE` | `none` | LLM mode: `"none"` (feature importance only) or `"local"` (Phi-3) |
+| `LLM_MODEL_PATH` | `models/llm/Phi-3-mini-4k-instruct-q4.gguf` | Path to GGUF model file |
+| `VECTORSTORE_DIR` | `data/vectorstore/faiss` | Path to FAISS vector store directory |
+
+**Example** (enable Phi-3 LLM):
+```bash
+export LLM_MODE=local
+export LLM_MODEL_PATH=models/llm/Phi-3-mini-4k-instruct-q4.gguf
+export VECTORSTORE_DIR=data/vectorstore/faiss
+
+# Rebuild FAISS index (if needed)
+python -m src.agent.setup_rag
+
+# Restart server
+uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
 
 ---
 
@@ -733,6 +764,78 @@ curl http://localhost:8000/health | jq '.version'
 - Full system audit
 - Security review
 - Capacity planning for next year
+
+---
+
+## FAISS Vector Store Maintenance
+
+The FAISS vector store powers the RAG-based explainability feature. Follow these guidelines for maintenance:
+
+### Building the FAISS Index
+
+```bash
+# Build or rebuild the FAISS index from knowledge base
+python -m src.agent.setup_rag
+```
+
+**What it does:**
+1. Reads documents from `data/knowledge_base/sample_aml_rules.jsonl`
+2. Embeds documents using sentence-transformers (all-MiniLM-L6-v2)
+3. Creates FAISS index in `data/vectorstore/faiss/`
+4. Saves index to disk for persistence
+
+**When to rebuild:**
+- After adding new documents to the knowledge base
+- After modifying existing document text
+- After updating the embedding model
+- If the index becomes corrupted
+
+### Backing Up the FAISS Index
+
+```bash
+# Backup FAISS index
+tar -czvf faiss_backup_$(date +%Y%m%d).tar.gz data/vectorstore/faiss/
+
+# Restore from backup
+tar -xzvf faiss_backup_20260427.tar.gz -C ./
+```
+
+**Backup schedule:** Weekly (along with database backups)
+
+### Adding New Documents to Knowledge Base
+
+1. Add new JSONL entry to `data/knowledge_base/sample_aml_rules.jsonl`:
+```json
+{"doc_id": "rule_005", "text": "Description of new AML pattern..."}
+```
+
+2. Rebuild the FAISS index:
+```bash
+python -m src.agent.setup_rag
+```
+
+3. Verify retrieval works:
+```bash
+curl -X POST http://localhost:8000/explain \
+  -H "Content-Type: application/json" \
+  -d '{"case_id": "test", "tx_features": {...}, "tx_text": "your pattern"}'
+```
+
+### Troubleshooting FAISS Issues
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| Index not found | `FAISS index not found` error | Run `python -m src.agent.setup_rag` |
+| Empty retrieval | No cited_docs in response | Check knowledge base has content |
+| Slow retrieval | >500ms for /explain | Reduce top_k in config or optimize embeddings |
+
+### FAISS Index Specifications
+
+- **Embedding Model**: sentence-transformers/all-MiniLM-L6-v2
+- **Vector Dimensions**: 384
+- **Index Type**: FAISS Flat (exact nearest neighbor)
+- **Typical Size**: ~100MB for 1000 documents
+- **Retrieval Latency**: <100ms (local)
 
 ---
 

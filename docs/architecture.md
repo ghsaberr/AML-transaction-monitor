@@ -266,6 +266,74 @@ Scoring Events → MetricsCollector → FeatureDriftDetector
 
 ---
 
+### Layer 8: Agentic Explainability Layer (RAG)
+**Purpose**: Provide human-readable explanations with document citations using retrieval-augmented generation and local LLM inference
+
+**Components**:
+- `src/agent/aml_agent.py`: AMLAgent class
+  - Loads FAISS vector store with historical AML cases
+  - Initializes Phi-3 Mini LLM (optional, with graceful degradation)
+  - Executes RAG pipeline: retrieval → prompt → LLM inference
+  - Returns structured explanations with document citations
+
+- `src/agent/build_retriever.py`: FAISS retriever builder
+  - Loads vector store from `data/vectorstore/faiss/`
+  - Uses sentence-transformers (all-MiniLM-L6-v2) for embeddings
+  - Returns top-K similar cases with metadata (doc_id)
+
+- `src/agent/setup_rag.py`: FAISS index initialization script
+  - Reads knowledge base from `data/knowledge_base/sample_aml_rules.jsonl`
+  - Embeds documents and creates FAISS index
+  - Idempotent: can be re-run to refresh index
+
+**Data Flow: Feature Extraction → FAISS Retrieval → LangChain Orchestration → Phi-3 Inference**:
+```
+POST /explain { tx_features, tx_text }
+    │
+    ├─→ ExplanationService.explain_score()
+    │       │
+    │       ├─→ AMLAgent.run()
+    │       │       │
+    │       │       ├─→ ModelRunner.run() [LightGBM scoring]
+    │       │       │       └─→ Returns: score, decision, top_features
+    │       │       │
+    │       │       ├─→ Retriever.invoke(tx_text) [FAISS]
+    │       │       │       └─→ Returns: top-K docs with metadata.doc_id
+    │       │       │
+    │       │       ├─→ PromptTemplate.format() [LangChain]
+    │       │       │       └─→ Injects: features, retrieved_docs, citations
+    │       │       │
+    │       │       └─→ LlamaCpp() [Phi-3 inference]
+    │       │               └─→ Returns: natural language rationale
+    │       │
+    │       └─→ Return: { decision, rationale, cited_docs, llm_enabled }
+    │
+    └─→ Output: ExplainResponse { decision, rationale, cited_docs, ... }
+```
+
+**Graceful Degradation Strategy**:
+| Scenario | Behavior | Output |
+|----------|----------|--------|
+| Phi-3 GGUF missing | Agent initializes with `llm=None` | Feature importance only, `llm_enabled: false` |
+| FAISS index missing | Retriever returns empty list | No citations, feature importance only |
+| Both missing | Full fallback to feature importance | Standard feature importance response |
+| LLM_MODE=none | Agent skips LLM initialization | RAG retrieval without LLM reasoning |
+
+**Knowledge Base**:
+- Location: `data/knowledge_base/sample_aml_rules.jsonl`
+- Document format: JSONL with `doc_id` (e.g., "rule_001") and `text` fields
+- Current content: 4 AML typologies (structuring, smurfing, layering, integration)
+- Extensible: Add more documented cases, re-run `setup_rag.py` to re-index
+
+**Citation Format**:
+- Retrieved documents cited as `[rule_XXX]` in LLM rationale
+- Example: "Pattern suggests structuring [rule_001] with layering [rule_003]"
+- Reviewers can look up cited documents in knowledge base for full details
+
+**Key Principle**: Explainable AI with traceable citations for regulatory compliance
+
+---
+
 ## Data Flow Examples
 
 ### Example 1: Score Transaction

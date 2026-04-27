@@ -34,6 +34,47 @@ This model card documents the LightGBM binary classification model used in the A
 
 ---
 
+## LLM Component (Sprint 6)
+
+### Model Details
+- **Model**: Phi-3-mini-4k-instruct-q4.gguf
+- **Framework**: LlamaCpp (GGUF format, 4-bit quantization)
+- **Purpose**: Natural language explanations for AML risk scores via RAG
+- **Context Window**: 2048 tokens
+- **Location**: `models/llm/Phi-3-mini-4k-instruct-q4.gguf`
+
+### RAG Pipeline
+- **Embedding Model**: sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)
+- **Vector Store**: FAISS (`data/vectorstore/faiss/index.faiss`)
+- **Knowledge Base**: `data/knowledge_base/sample_aml_rules.jsonl`
+- **Retrieval**: Top-3 similar documents per query
+
+### LLM Limitations
+
+1. **Hallucination Risk**: 
+   - LLM may generate plausible-sounding but incorrect explanations
+   - Always verify citations against knowledge base
+   - Human review required for all ALERT decisions
+
+2. **Context Window**:
+   - Limited to 2048 tokens; long explanations truncated
+   - May not capture full case context in complex scenarios
+
+3. **Knowledge Cutoff**:
+   - Trained on data up to 2024; may not know recent AML regulations
+   - Knowledge base provides domain-specific context
+
+4. **Quantization Trade-offs**:
+   - 4-bit quantization reduces accuracy for nuanced reasoning
+   - May produce less precise explanations than full-precision models
+
+### Graceful Degradation
+- **LLM_MODE=none**: Feature importance only, no natural language
+- **Missing GGUF**: Falls back to feature importance with warning
+- **Missing FAISS**: Uses generic explanations without citations
+
+---
+
 ## Intended Use
 
 ### Primary Use Case

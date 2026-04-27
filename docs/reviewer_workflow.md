@@ -117,7 +117,7 @@ curl http://localhost:8000/cases/case_abc123
 
 **Endpoint**: `POST /explain`
 
-**Purpose**: Understand which features contributed to the AML risk score
+**Purpose**: Understand which features contributed to the AML risk score, with optional RAG-based reasoning and document citations
 
 **CLI Example**:
 ```bash
@@ -127,45 +127,112 @@ curl -X POST http://localhost:8000/explain \
     "case_id": "case_abc123",
     "tx_features": {
       "transaction_amount": 15000.0,
-      ...
-    }
+      "transaction_count_24h": 25,
+      "unique_destinations_24h": 8,
+      "avg_transaction_amount_7d": 5000.0,
+      "days_since_account_creation": 90,
+      "is_flagged_as_high_risk": true,
+      "account_age_category": 1,
+      "transaction_velocity": 0.85,
+      "geographic_risk_score": 0.7,
+      "transaction_type_risk": 0.6
+    },
+    "tx_text": "High velocity, multiple destinations, new account - potential structuring pattern"
   }'
 ```
 
-**Response**:
+**Response** (with RAG + LLM enabled):
 ```json
 {
   "case_id": "case_abc123",
-  "score": 0.75,
-  "explanation": "High-risk transaction based on large amount and frequent destinations",
-  "feature_importance": {
-    "transaction_amount": 0.30,
-    "unique_destinations_24h": 0.25,
-    "geographic_risk_score": 0.20,
-    "transaction_velocity": 0.15,
-    "other_features": 0.10
-  },
-  "top_risk_factors": [
+  "score": 0.85,
+  "decision": "ALERT",
+  "explanation_type": "agent_rag",
+  "rationale": [
+    "Risk Score: 85.00%",
+    "Top Risk Factors: transaction_velocity, geographic_risk_score, transaction_type_risk",
+    "Similar cases: [rule_002], [rule_003]",
+    "High transaction velocity combined with multiple destinations suggests potential structuring activity. The pattern closely matches known smurfing typologies."
+  ],
+  "cited_docs": ["rule_002", "rule_003"],
+  "llm_enabled": true,
+  "top_features": [
     {
-      "feature": "transaction_amount",
-      "value": 15000.0,
-      "importance": 0.30,
-      "interpretation": "Amount significantly above account average"
+      "feature_name": "transaction_velocity",
+      "importance_value": 0.45,
+      "contribution": "positive"
     },
     {
-      "feature": "unique_destinations_24h",
-      "value": 8,
-      "importance": 0.25,
-      "interpretation": "8 destinations in 24h suggests scatter transaction pattern"
+      "feature_name": "geographic_risk_score",
+      "importance_value": 0.32,
+      "contribution": "positive"
+    },
+    {
+      "feature_name": "transaction_type_risk",
+      "importance_value": 0.28,
+      "contribution": "positive"
     }
-  ]
+  ],
+  "timestamp": "2026-04-27T15:30:45Z"
 }
 ```
 
-**Key Interpretations**:
-- **Top Features**: Show which factors most influenced the AUC score
-- **Feature Values**: Actual feature values used in scoring
-- **Risk Factors**: Why each top feature is concerning
+**Response** (fallback without LLM):
+```json
+{
+  "case_id": "case_abc123",
+  "score": 0.85,
+  "decision": "ALERT",
+  "explanation_type": "feature_importance",
+  "rationale": [
+    "Risk Score: 85.00%",
+    "Top Risk Factors: transaction_velocity, geographic_risk_score, transaction_type_risk"
+  ],
+  "cited_docs": [],
+  "llm_enabled": false,
+  "top_features": [
+    {
+      "feature_name": "transaction_velocity",
+      "importance_value": 0.45,
+      "contribution": "positive"
+    }
+  ],
+  "timestamp": "2026-04-27T15:30:45Z"
+}
+```
+
+**How to Interpret the Explanation**:
+
+1. **Decision**: "ALERT" (score ≥ 0.5) or "PASS" (score < 0.5)
+   - ALERT cases require human review
+   - PASS cases can be processed automatically
+
+2. **Rationale Bullet Points**: 
+   - Shows the risk score and top contributing features
+   - If LLM is enabled, includes natural language reasoning
+   - Citations like `[rule_002]` reference similar historical cases
+
+3. **Cited Documents**:
+   - Look up document IDs in the knowledge base (`data/knowledge_base/sample_aml_rules.jsonl`)
+   - Example: `rule_002` might describe "smurfing" patterns
+   - Citations provide regulatory traceability: you can show *why* the system flagged this case
+
+4. **Top Features**:
+   - Shows which features most influenced the score
+   - `importance_value`: Contribution weight (higher = more influential)
+   - `contribution`: "positive" means it increased the risk score
+
+5. **LLM Enabled**:
+   - `true`: Full RAG-based explanation with natural language reasoning
+   - `false`: Feature importance only (LLM unavailable or disabled)
+
+**Verifying Cited Documents**:
+```bash
+# Look up a cited document in the knowledge base
+grep "rule_002" data/knowledge_base/sample_aml_rules.jsonl
+```
+
+This helps reviewers verify that the AI's reasoning aligns with documented AML typologies.
 
 ### Step 4: Review Audit Trail
 

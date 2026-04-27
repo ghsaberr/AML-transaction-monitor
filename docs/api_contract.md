@@ -492,7 +492,7 @@ curl http://localhost:8000/metrics
 
 ### POST /explain
 
-**Purpose**: Get explanation for a scored case (model feature importance or agent analysis)
+**Purpose**: Get explanation for a scored case using RAG-based agentic explainability with optional local LLM reasoning
 
 **Request Body**:
 ```json
@@ -500,32 +500,101 @@ curl http://localhost:8000/metrics
   "case_id": "case_550e8400e29b",
   "tx_features": {
     "transaction_amount": 5000.0,
-    ...
-  }
+    "transaction_count_24h": 15,
+    "unique_destinations_24h": 3,
+    "avg_transaction_amount_7d": 2500.0,
+    "days_since_account_creation": 365,
+    "is_flagged_as_high_risk": false,
+    "account_age_category": 2,
+    "transaction_velocity": 0.1,
+    "geographic_risk_score": 0.3,
+    "transaction_type_risk": 0.2
+  },
+  "tx_text": "Normal transaction pattern, low risk"
 }
 ```
 
-**Response**:
+**Request Schema Details**:
+- `case_id`: Required, case identifier
+- `tx_features`: Required, 35-feature dictionary matching feature contract
+- `tx_text`: Optional, natural language description for RAG retrieval
+- `raw_tx`: Optional, raw transaction data for context
+
+**Response** (with LLM enabled and FAISS retrieval):
 ```json
 {
   "case_id": "case_550e8400e29b",
-  "score": 0.25,
-  "explanation": "Low-risk transaction based on feature analysis",
-  "feature_importance": {
-    "transaction_velocity": 0.25,
-    "geographic_risk_score": 0.20,
-    "transaction_count_24h": 0.15,
-    ...
-  },
-  "top_risk_factors": [
+  "score": 0.72,
+  "decision": "ALERT",
+  "explanation_type": "agent_rag",
+  "rationale": [
+    "Risk Score: 72.00%",
+    "Top Risk Factors: transaction_velocity, geographic_risk_score, transaction_type_risk",
+    "Similar cases: [rule_002], [rule_003]",
+    "High transaction velocity combined with geographic risk suggests potential layering activity"
+  ],
+  "cited_docs": ["rule_002", "rule_003"],
+  "llm_enabled": true,
+  "top_features": [
     {
-      "feature": "transaction_velocity",
-      "value": 0.1,
-      "importance": 0.25
+      "feature_name": "transaction_velocity",
+      "importance_value": 0.45,
+      "contribution": "positive"
+    },
+    {
+      "feature_name": "geographic_risk_score",
+      "importance_value": 0.32,
+      "contribution": "positive"
+    },
+    {
+      "feature_name": "transaction_type_risk",
+      "importance_value": 0.28,
+      "contribution": "positive"
     }
-  ]
+  ],
+  "timestamp": "2026-04-27T15:30:45Z"
 }
 ```
+
+**Response Schema Details**:
+- `case_id`: Case identifier
+- `score`: Risk score ∈ [0, 1]
+- `decision`: "ALERT" (score ≥ 0.5) or "PASS" (score < 0.5)
+- `explanation_type`: "agent_rag" (LLM + retrieval) or "feature_importance" (fallback)
+- `rationale`: List of explanation bullet points; includes citations like `[rule_001]`
+- `cited_docs`: List of document IDs from knowledge base (e.g., ["rule_001", "rule_003"])
+- `llm_enabled`: Boolean indicating if local LLM was used
+- `top_features`: List of FeatureImportance objects with feature_name, importance_value, contribution
+- `timestamp`: ISO 8601 timestamp
+
+**Response** (fallback without LLM):
+```json
+{
+  "case_id": "case_550e8400e29b",
+  "score": 0.72,
+  "decision": "ALERT",
+  "explanation_type": "feature_importance",
+  "rationale": [
+    "Risk Score: 72.00%",
+    "Top Risk Factors: transaction_velocity, geographic_risk_score, transaction_type_risk"
+  ],
+  "cited_docs": [],
+  "llm_enabled": false,
+  "top_features": [
+    {
+      "feature_name": "transaction_velocity",
+      "importance_value": 0.45,
+      "contribution": "positive"
+    }
+  ],
+  "timestamp": "2026-04-27T15:30:45Z"
+}
+```
+
+**Graceful Degradation**:
+- If Phi-3 LLM is unavailable: Returns feature importance with `llm_enabled: false`
+- If FAISS vector store is unavailable: Returns feature importance without citations
+- Citation format: `[rule_XXX]` where XXX corresponds to document IDs in knowledge base
 
 **Example**:
 ```bash
@@ -533,7 +602,19 @@ curl -X POST http://localhost:8000/explain \
   -H "Content-Type: application/json" \
   -d '{
     "case_id": "case_550e8400e29b",
-    "tx_features": {...}
+    "tx_features": {
+      "transaction_amount": 5000.0,
+      "transaction_count_24h": 15,
+      "unique_destinations_24h": 3,
+      "avg_transaction_amount_7d": 2500.0,
+      "days_since_account_creation": 365,
+      "is_flagged_as_high_risk": false,
+      "account_age_category": 2,
+      "transaction_velocity": 0.1,
+      "geographic_risk_score": 0.3,
+      "transaction_type_risk": 0.2
+    },
+    "tx_text": "Normal transaction pattern, low risk"
   }'
 ```
 
