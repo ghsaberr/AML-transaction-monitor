@@ -18,7 +18,8 @@ from src.agent.model_runner import ModelRunner
 from src.agent.diagnostics import DiagnosticTools
 from src.storage import get_db
 from src.api.schemas import ErrorDetail
-from src.api import routers
+from src.api.routers import health, score, review, audit, metrics
+# Note: explain router imported later if needed due to optional LLM dependencies
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -119,12 +120,18 @@ def shutdown_event():
 # ============================================================================
 
 # Include all routers
-app.include_router(routers.health.router)
-app.include_router(routers.score.router)
-app.include_router(routers.explain.router)
-app.include_router(routers.review.router)
-app.include_router(routers.audit.router)
-app.include_router(routers.metrics.router)
+app.include_router(health.router)
+app.include_router(score.router)
+app.include_router(review.router)
+app.include_router(audit.router)
+app.include_router(metrics.router)
+
+# Include explain router if LLM dependencies are available
+try:
+    from src.api.routers import explain
+    app.include_router(explain.router)
+except ImportError as e:
+    logger.warning(f"Explain router not available (missing LLM dependencies): {e}")
 
 
 # ============================================================================
