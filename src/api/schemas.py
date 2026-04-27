@@ -305,16 +305,33 @@ class HealthResponse(BaseModel):
 class MetricsSnapshot(BaseModel):
     """Snapshot of system metrics."""
     
+    # Request/latency metrics
     request_count: int
     success_count: int
     error_count: int
     average_latency_ms: float
     p95_latency_ms: float
     p99_latency_ms: float
+    
+    # Score statistics
     score_mean: Optional[float]
     score_median: Optional[float]
     score_std: Optional[float]
-    review_rate: float  # reviewed / total
+    
+    # Case counts
+    cases_total: int = Field(default=0, description="Total cases processed")
+    cases_queued: int = Field(default=0, description="Cases awaiting review")
+    cases_approved: int = Field(default=0, description="Approved cases")
+    cases_rejected: int = Field(default=0, description="Rejected cases")
+    cases_escalated: int = Field(default=0, description="Escalated cases")
+    
+    # Drift metrics
+    drift_features_analyzed: int = Field(default=0, description="Features analyzed for drift")
+    drift_features_alert: int = Field(default=0, description="Features with drift alert")
+    drift_alert: bool = Field(default=False, description="Overall drift alert status")
+    
+    # Review rate
+    review_rate: float = Field(default=0.0, description="reviewed / total")
     
     class Config:
         json_encoders = {
@@ -520,3 +537,64 @@ class HealthResponseWithMetadata(BaseModel):
     schema_hash: str = Field(..., description="Feature contract schema hash")
     database: str = Field(..., description="Database status")
     timestamp: datetime = Field(..., description="Timestamp")
+
+
+# ============================================================================
+# DRIFT DETECTION & MONITORING CONTRACTS
+# ============================================================================
+
+class FeatureDriftSchema(BaseModel):
+    """Drift analysis for a single feature."""
+    
+    name: str = Field(..., description="Feature name")
+    ks_statistic: float = Field(..., description="Kolmogorov-Smirnov test statistic")
+    p_value: float = Field(..., description="P-value from KS test")
+    alert: bool = Field(..., description="Whether drift was detected")
+    training_mean: float = Field(..., description="Mean from training set")
+    current_mean: float = Field(..., description="Current production mean")
+    std_devs_apart: float = Field(..., description="Number of std devs between means")
+
+
+class DriftAnalysisResponse(BaseModel):
+    """Complete drift analysis for features."""
+    
+    window_hours: int = Field(..., description="Analysis time window in hours")
+    features_analyzed: int = Field(..., description="Number of features analyzed")
+    features_drifting: int = Field(..., description="Number of features with drift")
+    overall_alert: bool = Field(..., description="Overall drift alert status")
+    drifting_features: List[str] = Field(..., description="Names of features with drift")
+    details: Dict[str, FeatureDriftSchema] = Field(..., description="Per-feature drift details")
+
+
+class PerformanceMetricsSchema(BaseModel):
+    """Model performance metrics."""
+    
+    precision: float = Field(..., description="Precision (TP/(TP+FP))")
+    recall: float = Field(..., description="Recall (TP/(TP+FN))")
+    accuracy: float = Field(..., description="Accuracy ((TP+TN)/total)")
+    f1: float = Field(..., description="F1 score")
+    true_positives: int = Field(..., description="True positives")
+    false_positives: int = Field(..., description="False positives")
+    true_negatives: int = Field(..., description="True negatives")
+    false_negatives: int = Field(..., description="False negatives")
+    samples: int = Field(..., description="Number of samples evaluated")
+
+
+class AlertSchema(BaseModel):
+    """Alert status and details."""
+    
+    alert_type: str = Field(..., description="Type: drift, performance, latency, queue")
+    triggered: bool = Field(..., description="Whether alert is active")
+    reason: str = Field(default="", description="Reason for alert if triggered")
+    threshold: float = Field(default=0.0, description="Threshold that triggered alert")
+    current_value: float = Field(default=0.0, description="Current value")
+
+
+class MonitoringStatusResponse(BaseModel):
+    """Complete monitoring status."""
+    
+    timestamp: datetime = Field(..., description="When status was captured")
+    metrics: MetricsSnapshot = Field(..., description="Current metrics snapshot")
+    drift_analysis: Optional[DriftAnalysisResponse] = Field(None, description="Drift analysis")
+    performance: Optional[PerformanceMetricsSchema] = Field(None, description="Performance metrics")
+    alerts: List[AlertSchema] = Field(default=[], description="Active alerts")
