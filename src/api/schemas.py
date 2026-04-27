@@ -122,10 +122,11 @@ class FeatureImportance(BaseModel):
     feature_name: str
     importance_value: float
     contribution: str  # "positive" or "negative"
+    feature_value: Optional[float] = None
 
 
 class ExplainResponse(BaseModel):
-    """Explanation response with fallback feature importance."""
+    """Explanation response with RAG + LLM or fallback feature importance."""
     
     case_id: str = Field(
         ...,
@@ -141,17 +142,29 @@ class ExplainResponse(BaseModel):
     )
     explanation_type: str = Field(
         ...,
-        description="Type of explanation: 'agent' or 'feature_importance'"
+        description="Type of explanation: 'agent_rag', 'agent', or 'feature_importance'"
     )
-    # For agent-based explanations
-    agent_response: Optional[str] = Field(
+    # For agent-based explanations (RAG + LLM)
+    decision: Optional[str] = Field(
         default=None,
-        description="Free-text explanation from LLM agent"
+        description="Decision from agent: ALERT or PASS"
+    )
+    rationale: Optional[List[str]] = Field(
+        default=None,
+        description="Key reasons for the decision"
+    )
+    cited_docs: Optional[List[str]] = Field(
+        default=None,
+        description="IDs of retrieved historical cases cited in rationale"
+    )
+    llm_enabled: Optional[bool] = Field(
+        default=False,
+        description="Whether LLM was used (vs. fallback)"
     )
     # For fallback feature importance
     top_features: Optional[List[FeatureImportance]] = Field(
         default=None,
-        description="Top contributing features if agent unavailable"
+        description="Top contributing features"
     )
     timestamp: datetime = Field(
         ...,

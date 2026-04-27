@@ -13,6 +13,7 @@ A risk decision engine that scores financial transactions in real-time for AML c
 - **Human Review Workflow**: Compliance officer review with full audit trail
 - **Continuous Monitoring**: Drift detection, performance metrics, automated alerts
 - **Regulatory Compliance**: Complete decision documentation for audit
+- **Agentic RAG-based Explainability**: Local Phi-3 LLM with FAISS vector store for explainable AI with document citations
 
 ### Key Metrics
 - **Model Accuracy**: Precision 95.2%, Recall 88.0%, AUC 0.962
@@ -42,7 +43,22 @@ uv pip install -r requirements.txt
 # Initialize database
 python -c "from src.storage.db import init_db; init_db()"
 
+# Build FAISS vector store for RAG-based explainability (optional but recommended)
+python -m src.agent.setup_rag
+
 # Start API server
+uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+### 1a. Enable Local LLM for Explainability (Optional)
+```bash
+# Set environment variable to enable Phi-3 LLM
+export LLM_MODE=local
+
+# Verify Phi-3 model exists (should be ~2.4GB)
+ls -lh models/llm/Phi-3-mini-4k-instruct-q4.gguf
+
+# Restart server with LLM enabled
 uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -125,6 +141,11 @@ Production Transactions
     ├─ Alerting Policies (thresholds)
     └─ Metrics Endpoint (GET /metrics)
     ↓
+[Agentic Explainability Layer] ← RAG + Local LLM
+    ├─ [FAISS Vector Store] ← Historical AML cases (knowledge base)
+    ├─ [LangChain] ← Prompt orchestration, retrieval chain
+    └─ [Phi-3 Mini LLM] ← Local reasoning with citations
+    ↓
 [Review Queue] ← Human compliance officers
     ├─ APPROVED (legitimate)
     ├─ REJECTED (suspicious)
@@ -193,7 +214,7 @@ Complete documentation is organized in the `/docs` folder:
 
 ## Running Tests
 
-### Unit & Integration Tests (97 total)
+### Unit & Integration Tests (96 total)
 ```bash
 # Run all tests
 uv run python -m pytest tests/ --ignore=tests/test_api_health_old.py -v
@@ -211,11 +232,12 @@ uv run python -m pytest tests/ --cov=src --cov-report=html
 - **Feature Contract Tests** (25): Schema validation, type coercion, versioning
 - **Monitoring Tests** (20): Drift detection, performance, alerting
 - **Review Workflow Tests** (19): Case management, status transitions, audit
+- **Agent Tests** (9): RAG retrieval, LLM graceful degradation, citation tracking
 - **E2E Integration Tests** (20+): Full workflows (Score → Review → Audit → Metrics)
 
 ### Test Results
 ```
-97 passed, 24 warnings in 38.33s 
+96 passed in 42.15s
 ```
 
 ---
@@ -297,6 +319,10 @@ Located at `models/lgbm_final/artifact_metadata.json`:
 - **scipy** (stats): Drift detection (KS-test)
 - **numpy**: Numerical operations
 - **pytest** (9.0+): Testing framework
+- **langchain**: LLM orchestration and retrieval chains
+- **llama-cpp-python**: Local LLM inference (Phi-3 GGUF)
+- **faiss-cpu**: Vector store for RAG-based retrieval
+- **sentence-transformers**: Embeddings for FAISS indexing
 
 ---
 

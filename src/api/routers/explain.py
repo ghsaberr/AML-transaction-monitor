@@ -1,12 +1,10 @@
 # src/api/routers/explain.py
-"""Explanation endpoint with dual-mode (agent + fallback)."""
+"""Explanation endpoint with RAG + local LLM."""
 
 from fastapi import APIRouter, HTTPException
 from typing import Optional
 from src.api.schemas import ExplainRequest, ExplainResponse
 from src.api.service import ExplanationService
-from src.agent.aml_agent import AMLAgent, AgentConfig
-from src.agent.diagnostics import DiagnosticTools
 import os
 import logging
 
@@ -18,97 +16,62 @@ router = APIRouter(tags=["explain"])
 LLM_MODE = os.getenv("LLM_MODE", "none")
 LLM_MODEL_PATH = os.getenv("LLM_MODEL_PATH", "models/llm/Phi-3-mini-4k-instruct-q4.gguf")
 VECTORSTORE_DIR = os.getenv("VECTORSTORE_DIR", "data/vectorstore/faiss")
-ENABLE_RETRIEVAL = os.getenv("ENABLE_RETRIEVAL", "false").lower() == "true"
 
-# Global agent instance
-_agent: Optional[AMLAgent] = None
+# Global explanation service singleton
+_explanation_service: Optional[ExplanationService] = None
 
 
 def get_explanation_service(model_runner) -> ExplanationService:
-    """Dependency injection for explanation service."""
-    return ExplanationService(model_runner)
-
-
-def _get_agent(model_runner) -> Optional[AMLAgent]:
-    """Get or initialize agent if retrieval enabled."""
-    global _agent
-    
-    if not ENABLE_RETRIEVAL:
-        return None
-    
-    if _agent is not None:
-        return _agent
-    
-    try:
-        diag = DiagnosticTools()
-        cfg = AgentConfig(
-            vectorstore_dir=VECTORSTORE_DIR,
-            llm_mode=LLM_MODE,
-            llm_model_path=LLM_MODEL_PATH,
-        )
-        _agent = AMLAgent(model_runner=model_runner, diagnostics=diag, config=cfg)
-        return _agent
-    except Exception as e:
-        logger.warning(f"Failed to initialize agent: {e}")
-        return None
+    """Get or create explanation service with agent."""
+    global _explanation_service
+    if _explanation_service is None:
+        _explanation_service = ExplanationService(model_runner)
+    return _explanation_service
 
 
 @router.post(
     "/explain",
     response_model=ExplainResponse,
     summary="Explain Score",
-    description="Generate explanation for a transaction score (agent-based or feature importance)"
+    description="Generate explanation for a transaction score using RAG + local LLM",
+    tags=["explain"]
 )
 def explain(req: ExplainRequest):
     """
-    Explain a transaction score.
+    Explain a transaction score using RAG (Retrieval-Augmented Generation).
     
-    Dual-mode explanation:
-    - If ENABLE_RETRIEVAL=true and agent loads: Uses LLM agent with retrieval
-    - Otherwise: Falls back to feature importance (LightGBM)
+    Features:
+    - Retrieves similar historical AML cases from FAISS
+    - Generates explanation using local Phi-3 LLM (if available)
+    - Falls back to feature importance if LLM unavailable
+    - Cites document IDs in the rationale
     
     Args:
-        req: ExplainRequest with case_id and tx_features
+        req: ExplainRequest with case_id, tx_features, and optional tx_text
     
     Returns:
-        ExplainResponse with either agent_response or top_features
+        ExplainResponse with decision, rationale, and cited documents
     
     Raises:
-        HTTPException 404: If case not found
+        HTTPException 400: If invalid input
         HTTPException 500: If explanation generation fails
     """
     try:
-        # Import here to avoid circular imports
+        # Import here to avoid circular imports during tests
         from src.api.main import get_model_runner
         
         model_runner = get_model_runner()
-        service = ExplanationService(model_runner)
+        service = get_explanation_service(model_runner)
         
-        agent = None
-        agent_response = None
+        # Get score from request or default
+        score = getattr(req, "score", 0.5)  # Could be in request or DB
         
-        # Try to get agent-based explanation
-        if model_runner:
-            agent = _get_agent(model_runner)
-        
-        if agent:
-            try:
-                agent_response = agent.run(
-                    tx_features=req.tx_features,
-                    raw_tx=req.raw_tx or {},
-                    tx_text=req.tx_text or "",
-                )
-            except Exception as e:
-                logger.warning(f"Agent explanation failed, using fallback: {e}")
-                agent_response = None
-        
-        # Generate explanation (with fallback to feature importance)
+        # Generate explanation with RAG + LLM
         result = service.explain_score(
             case_id=req.case_id,
-            score=0.0,  # TODO: Get actual score from DB
+            score=score,
             tx_features=req.tx_features,
-            agent_enabled=(agent is not None),
-            agent_response=agent_response,
+            tx_text=req.tx_text if hasattr(req, "tx_text") else None,
         )
         
         return result

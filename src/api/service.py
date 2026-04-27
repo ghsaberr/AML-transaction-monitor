@@ -171,61 +171,109 @@ class ReviewService:
 
 
 class ExplanationService:
-    """Orchestrates explanation generation with fallbacks."""
+    """Orchestrates explanation generation with RAG + LLM agent."""
     
     def __init__(self, model_runner=None):
         """Initialize explanation service."""
         self.model_runner = model_runner
+        self.agent = None
+        self._init_agent()
+    
+    def _init_agent(self):
+        """Initialize RAG agent with graceful degradation."""
+        try:
+            from src.agent.aml_agent import AMLAgent, AgentConfig
+            from src.agent.diagnostics import DiagnosticTools
+            import os
+            
+            llm_mode = os.getenv("LLM_MODE", "none")
+            llm_path = os.getenv("LLM_MODEL_PATH", "models/llm/Phi-3-mini-4k-instruct-q4.gguf")
+            vectorstore_dir = os.getenv("VECTORSTORE_DIR", "data/vectorstore/faiss")
+            
+            config = AgentConfig(
+                llm_mode=llm_mode,
+                llm_model_path=llm_path,
+                vectorstore_dir=vectorstore_dir,
+            )
+            
+            diag = DiagnosticTools()
+            self.agent = AMLAgent(
+                model_runner=self.model_runner,
+                diagnostics=diag,
+                config=config
+            )
+            logger.info("✓ RAG agent initialized")
+        except Exception as e:
+            logger.warning(f"Failed to initialize agent: {e}. Using fallback mode.")
+            self.agent = None
     
     def explain_score(
         self,
         case_id: str,
         score: float,
         tx_features: Dict[str, Any],
-        agent_enabled: bool = False,
-        agent_response: Optional[str] = None,
+        tx_text: str = None,
     ) -> Dict[str, Any]:
         """
-        Generate explanation for a score.
-        Falls back to feature importance if agent unavailable.
+        Generate explanation for a score using RAG + LLM or fallback.
         
         Args:
             case_id: Case being explained
             score: Risk score
             tx_features: Transaction features
-            agent_enabled: Whether agent-based explanation is available
-            agent_response: Pre-generated agent response (if available)
+            tx_text: Natural language description for retrieval
         
         Returns:
             Dictionary with explanation details
         """
-        if agent_enabled and agent_response:
-            # Use agent-based explanation
-            return {
-                "case_id": case_id,
-                "score": score,
-                "model_version": "1.0.0",
-                "explanation_type": "agent",
-                "agent_response": agent_response,
-                "timestamp": datetime.utcnow(),
-            }
-        else:
-            # Fallback to feature importance
-            feature_importance = self._get_feature_importance(tx_features)
-            
-            return {
-                "case_id": case_id,
-                "score": score,
-                "model_version": "1.0.0",
-                "explanation_type": "feature_importance",
-                "top_features": feature_importance,
-                "timestamp": datetime.utcnow(),
-            }
+        # Extract top features
+        top_features = self._get_feature_importance(tx_features)
+        
+        # Try agent-based explanation if available
+        if self.agent:
+            try:
+                agent_result = self.agent.run(
+                    score=score,
+                    top_features=top_features,
+                    tx_text=tx_text or self._features_to_text(tx_features),
+                )
+                
+                return {
+                    "case_id": case_id,
+                    "score": score,
+                    "model_version": "1.0.0",
+                    "explanation_type": "agent_rag",
+                    "decision": agent_result.get("decision", "PASS"),
+                    "rationale": agent_result.get("rationale", []),
+                    "cited_docs": agent_result.get("cited_docs", []),
+                    "top_features": top_features,
+                    "llm_enabled": agent_result.get("llm_enabled", False),
+                    "timestamp": datetime.utcnow(),
+                }
+            except Exception as e:
+                logger.warning(f"Agent explanation failed: {e}. Falling back to feature importance.")
+        
+        # Fallback to feature importance
+        return {
+            "case_id": case_id,
+            "score": score,
+            "model_version": "1.0.0",
+            "explanation_type": "feature_importance",
+            "top_features": top_features,
+            "timestamp": datetime.utcnow(),
+        }
+    
+    def _features_to_text(self, tx_features: Dict[str, Any]) -> str:
+        """Convert features dict to natural language for retrieval."""
+        high_risk_features = [
+            f for f, v in tx_features.items()
+            if isinstance(v, (int, float)) and v > 0.5
+        ]
+        return f"Transaction with features: {', '.join(high_risk_features)}"
     
     def _get_feature_importance(self, tx_features: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Extract top contributing features using model feature importance.
-        This is a fallback when agent is disabled.
         """
         try:
             # Get feature importance from LightGBM model
@@ -241,7 +289,6 @@ class ExplanationService:
             # Get top 5 features
             top_features = []
             for feature_name, importance_value in feature_scores[:5]:
-                # Determine if feature contribution is positive (higher = higher risk)
                 feature_value = tx_features.get(feature_name, 0)
                 contribution = "positive" if importance_value > 0 else "negative"
                 
@@ -249,6 +296,7 @@ class ExplanationService:
                     "feature_name": feature_name,
                     "importance_value": float(abs(importance_value)),
                     "contribution": contribution,
+                    "feature_value": float(feature_value) if isinstance(feature_value, (int, float)) else str(feature_value),
                 })
             
             return top_features
