@@ -31,7 +31,7 @@ A risk decision engine that scores financial transactions in real-time for AML c
 ```bash
 # Clone repository
 git clone <repo-url>
-cd AML-Transaction-Monitoring3
+cd AML-Transaction-Monitor
 
 # Create environment (using uv or venv)
 python3.11 -m venv .venv
@@ -217,7 +217,7 @@ Complete documentation is organized in the `/docs` folder:
 ### Unit & Integration Tests (96 total)
 ```bash
 # Run all tests
-uv run python -m pytest tests/ --ignore=tests/test_api_health_old.py -v
+uv run pytest tests/ -v
 
 # Run specific test file
 uv run python -m pytest tests/test_integration_e2e.py -v
@@ -340,24 +340,6 @@ Located at `models/lgbm_final/artifact_metadata.json`:
 - ✅ Operational monitoring (health, metrics, logging)
 - ✅ Reviewer workflow (complete UI/API)
 - ✅ Compliance audit trail (regulatory-grade)
-
----
-
-## Project Status
-
-### Sprint 1-4 Complete
-- Storage layer (SQLite, 3 tables, immutable audit)
-- API routers (6 endpoints, Pydantic validation)
-- Feature contracts (35-feature schema, versioning)
-- Monitoring system (drift, performance, alerting)
-- Service layer (decoupled business logic)
-- 87+ tests (100% passing, zero regressions)
-
-### Sprint 5 Complete
-- End-to-end integration tests (20+ workflows)
-- Production documentation (6 markdown files)
-- Executive summary (this README)
-- Full deployment guides (Docker, AWS, local)
 
 ---
 

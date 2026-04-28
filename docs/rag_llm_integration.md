@@ -170,7 +170,7 @@ All 96 tests pass, including:
 - Graceful degradation (missing models/FAISS)
 
 ```bash
-uv run pytest tests/ --ignore=tests/test_api_health_old.py -v
+uv run pytest tests/ -v
 ```
 
 **Test Coverage:**
